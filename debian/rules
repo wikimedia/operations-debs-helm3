@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+export DH_VERBOSE = 1
+# Don't build dbgsym packages
+export DEB_BUILD_OPTIONS = noddebs
+
+# see FEATURE AREAS in dpkg-buildflags(1)
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+
+%:
+	dh $@ --buildsystem=golang --with=golang
+
+override_dh_auto_install:
+	# Don't include go-source in the package
+	dh_auto_install -- --no-source
+	# dh-golang moves binary from build dir to Debian package destdir
+	# Manually rename it here (as it's to late for dh-exec)
+	mv debian/helm3/usr/bin/helm debian/helm3/usr/bin/helm3
+
+# Do not run tests, they fail
+override_dh_auto_test:
+
+# No dwz symbols in go, disable
+override_dh_dwz:
+

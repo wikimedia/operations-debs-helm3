@@ -1,0 +1,21 @@
+Source: helm3
+Section: devel
+Priority: optional
+Maintainer: Janis Meybohm <jmeybohm@wikimedia.org>
+Build-Depends: debhelper-compat (= 12),
+               dh-golang,
+               golang-any (>= 2:1.13),
+               git
+Standards-Version: 4.1.3
+Homepage: https://helm.sh
+XS-Go-Import-Path: helm.sh/helm/v3
+
+Package: helm3
+Provides: helm
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: A tool from managing Kubernetes charts
+ Helm is a tool for managing Kubernetes charts. Charts are packages of
+ pre-configured Kubernetes resources.
+ .
+ This is the version 3 branch of helm.

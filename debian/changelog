@@ -1,0 +1,5 @@
+helm3 (3.2.0-1+deb10u1) buster-wikimedia; urgency=medium
+
+  * Initial release (Bug: T251305)
+
+ -- Janis Meybohm <jmeybohm@wikimedia.org>  Tue, 28 Apr 2020 11:42:34 +0200
