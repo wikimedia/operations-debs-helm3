@@ -1,3 +1,9 @@
+helm3 (3.4.1-1) buster-wikimedia; urgency=medium
+
+  * New upstream version 3.4.1
+
+ -- Janis Meybohm <jmeybohm@wikimedia.org>  Fri, 20 Nov 2020 11:35:31 +0100
+
 helm3 (3.2.0-1+deb10u1) buster-wikimedia; urgency=medium
 
   * Initial release (Bug: T251305)

@@ -1,4 +1,6 @@
 #!/usr/bin/make -f
+include /usr/share/dpkg/pkg-info.mk
+
 # See debhelper(7) (uncomment to enable)
 # output every command that modifies files on the build system.
 export DH_VERBOSE = 1
@@ -8,9 +10,20 @@ export DEB_BUILD_OPTIONS = noddebs
 # see FEATURE AREAS in dpkg-buildflags(1)
 #export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
+BUILDFLAGS := -ldflags \
+  " -X helm.sh/helm/v3/internal/version.version=v$(DEB_VERSION_UPSTREAM)\
+    -X helm.sh/helm/v3/internal/version.metadata=\
+    -X helm.sh/helm/v3/internal/version.gitCommit=\
+    -X helm.sh/helm/v3/internal/version.gitTreeState="
 
 %:
 	dh $@ --buildsystem=golang --with=golang
+
+override_dh_auto_configure:
+	dh_auto_configure -- $(BUILDFLAGS)
+
+override_dh_auto_build:
+	dh_auto_build -- $(BUILDFLAGS)
 
 override_dh_auto_install:
 	# Don't include go-source in the package
