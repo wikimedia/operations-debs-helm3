@@ -55,8 +55,8 @@ var (
 	// NOTE: The $Format strings are replaced during 'git archive' thanks to the
 	// companion .gitattributes file containing 'export-subst' in this same
 	// directory.  See also https://git-scm.com/docs/gitattributes
-	gitVersion   = "v0.0.0-master+b9563ee7"
-	gitCommit    = "b9563ee7a2c23701ec150066c7b0c0137485f1c8" // sha1 from git, output of $(git rev-parse HEAD)
+	gitVersion   = "v0.0.0-master+2de5bfd0"
+	gitCommit    = "2de5bfd0f64aef21302fcb2045835a02efa7e90d" // sha1 from git, output of $(git rev-parse HEAD)
 	gitTreeState = ""            // state of git tree, either "clean" or "dirty"
 
 	buildDate = "1970-01-01T00:00:00Z" // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
