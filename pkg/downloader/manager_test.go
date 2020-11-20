@@ -85,7 +85,7 @@ func TestFindChartURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if churl != "https://kubernetes-charts.storage.googleapis.com/alpine-0.1.0.tgz" {
+	if churl != "https://charts.helm.sh/stable/alpine-0.1.0.tgz" {
 		t.Errorf("Unexpected URL %q", churl)
 	}
 	if username != "" {
@@ -183,7 +183,7 @@ func TestGetRepoNames(t *testing.T) {
 
 func TestUpdateBeforeBuild(t *testing.T) {
 	// Set up a fake repo
-	srv, err := repotest.NewTempServer("testdata/*.tgz*")
+	srv, err := repotest.NewTempServerWithCleanup(t, "testdata/*.tgz*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,6 +249,76 @@ func TestUpdateBeforeBuild(t *testing.T) {
 	}
 }
 
+// TestUpdateWithNoRepo is for the case of a dependency that has no repo listed.
+// This happens when the dependency is in the charts directory and does not need
+// to be fetched.
+func TestUpdateWithNoRepo(t *testing.T) {
+	// Set up a fake repo
+	srv, err := repotest.NewTempServerWithCleanup(t, "testdata/*.tgz*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srv.Stop()
+	if err := srv.LinkIndices(); err != nil {
+		t.Fatal(err)
+	}
+	dir := func(p ...string) string {
+		return filepath.Join(append([]string{srv.Root()}, p...)...)
+	}
+
+	// Setup the dependent chart
+	d := &chart.Chart{
+		Metadata: &chart.Metadata{
+			Name:       "dep-chart",
+			Version:    "0.1.0",
+			APIVersion: "v1",
+		},
+	}
+
+	// Save a chart with the dependency
+	c := &chart.Chart{
+		Metadata: &chart.Metadata{
+			Name:       "with-dependency",
+			Version:    "0.1.0",
+			APIVersion: "v2",
+			Dependencies: []*chart.Dependency{{
+				Name:    d.Metadata.Name,
+				Version: "0.1.0",
+			}},
+		},
+	}
+	if err := chartutil.SaveDir(c, dir()); err != nil {
+		t.Fatal(err)
+	}
+
+	// Save dependent chart into the parents charts directory. If the chart is
+	// not in the charts directory Helm will return an error that it is not
+	// found.
+	if err := chartutil.SaveDir(d, dir(c.Metadata.Name, "charts")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Set-up a manager
+	b := bytes.NewBuffer(nil)
+	g := getter.Providers{getter.Provider{
+		Schemes: []string{"http", "https"},
+		New:     getter.NewHTTPGetter,
+	}}
+	m := &Manager{
+		ChartPath:        dir(c.Metadata.Name),
+		Out:              b,
+		Getters:          g,
+		RepositoryConfig: dir("repositories.yaml"),
+		RepositoryCache:  dir(),
+	}
+
+	// Test the update
+	err = m.Update()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // This function is the skeleton test code of failing tests for #6416 and #6871 and bugs due to #5874.
 //
 // This function is used by below tests that ensures success of build operation
@@ -257,7 +327,7 @@ func TestUpdateBeforeBuild(t *testing.T) {
 // If each of these main fields (name, version, repository) is not supplied by dep param, default value will be used.
 func checkBuildWithOptionalFields(t *testing.T, chartName string, dep chart.Dependency) {
 	// Set up a fake repo
-	srv, err := repotest.NewTempServer("testdata/*.tgz*")
+	srv, err := repotest.NewTempServerWithCleanup(t, "testdata/*.tgz*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -359,4 +429,63 @@ func TestBuild_WithRepositoryAlias(t *testing.T) {
 	checkBuildWithOptionalFields(t, "with-repository-alias", chart.Dependency{
 		Repository: "@test",
 	})
+}
+
+func TestErrRepoNotFound_Error(t *testing.T) {
+	type fields struct {
+		Repos []string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "OK",
+			fields: fields{
+				Repos: []string{"https://charts1.example.com", "https://charts2.example.com"},
+			},
+			want: "no repository definition for https://charts1.example.com, https://charts2.example.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := ErrRepoNotFound{
+				Repos: tt.fields.Repos,
+			}
+			if got := e.Error(); got != tt.want {
+				t.Errorf("Error() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestKey(t *testing.T) {
+	tests := []struct {
+		name   string
+		expect string
+	}{
+		{
+			name:   "file:////tmp",
+			expect: "afeed3459e92a874f6373aca264ce1459bfa91f9c1d6612f10ae3dc2ee955df3",
+		},
+		{
+			name:   "https://example.com/charts",
+			expect: "7065c57c94b2411ad774638d76823c7ccb56415441f5ab2f5ece2f3845728e5d",
+		},
+		{
+			name:   "foo/bar/baz",
+			expect: "15c46a4f8a189ae22f36f201048881d6c090c93583bedcf71f5443fdef224c82",
+		},
+	}
+
+	for _, tt := range tests {
+		o, err := key(tt.name)
+		if err != nil {
+			t.Fatalf("unable to generate key for %q with error: %s", tt.name, err)
+		}
+		if o != tt.expect {
+			t.Errorf("wrong key name generated for %q, expected %q but got %q", tt.name, tt.expect, o)
+		}
+	}
 }

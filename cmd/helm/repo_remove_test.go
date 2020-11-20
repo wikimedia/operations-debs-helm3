@@ -30,7 +30,7 @@ import (
 )
 
 func TestRepoRemove(t *testing.T) {
-	ts, err := repotest.NewTempServer("testdata/testserver/*.*")
+	ts, err := repotest.NewTempServerWithCleanup(t, "testdata/testserver/*.*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,4 +159,9 @@ func testCacheFiles(t *testing.T, cacheIndexFile string, cacheChartsFile string,
 	if _, err := os.Stat(cacheChartsFile); err == nil {
 		t.Errorf("Error cache chart file was not removed for repository %s", repoName)
 	}
+}
+
+func TestRepoRemoveFileCompletion(t *testing.T) {
+	checkFileCompletion(t, "repo remove", false)
+	checkFileCompletion(t, "repo remove repo1", false)
 }

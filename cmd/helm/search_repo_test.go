@@ -69,6 +69,14 @@ func TestSearchRepositoriesCmd(t *testing.T) {
 		cmd:    "search repo maria --output json",
 		golden: "output/search-output-json.txt",
 	}, {
+		name:   "search for 'maria', expect one match with semver begin with zero development version",
+		cmd:    "search repo maria --devel",
+		golden: "output/search-semver-pre-zero-devel-release.txt",
+	}, {
+		name:   "search for 'nginx-ingress', expect one match with invalid development pre version",
+		cmd:    "search repo nginx-ingress --devel",
+		golden: "output/search-semver-pre-invalid-release.txt",
+	}, {
 		name:   "search for 'alpine', expect valid yaml output",
 		cmd:    "search repo alpine --output yaml",
 		golden: "output/search-output-yaml.txt",
@@ -86,4 +94,8 @@ func TestSearchRepositoriesCmd(t *testing.T) {
 
 func TestSearchRepoOutputCompletion(t *testing.T) {
 	outputFlagCompletionTest(t, "search repo")
+}
+
+func TestSearchRepoFileCompletion(t *testing.T) {
+	checkFileCompletion(t, "search repo", true) // File completion may be useful when inputing a keyword
 }

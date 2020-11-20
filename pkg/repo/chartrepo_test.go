@@ -172,7 +172,7 @@ func TestIndexCustomSchemeDownload(t *testing.T) {
 
 func verifyIndex(t *testing.T, actual *IndexFile) {
 	var empty time.Time
-	if actual.Generated == empty {
+	if actual.Generated.Equal(empty) {
 		t.Errorf("Generated should be greater than 0: %s", actual.Generated)
 	}
 
@@ -242,7 +242,7 @@ func verifyIndex(t *testing.T, actual *IndexFile) {
 			if len(g.Maintainers) != 2 {
 				t.Error("Expected 2 maintainers.")
 			}
-			if g.Created == empty {
+			if g.Created.Equal(empty) {
 				t.Error("Expected created to be non-empty")
 			}
 			if g.Description == "" {
@@ -276,6 +276,44 @@ func startLocalServerForTests(handler http.Handler) (*httptest.Server, error) {
 	return httptest.NewServer(handler), nil
 }
 
+// startLocalTLSServerForTests Start the local helm server with TLS
+func startLocalTLSServerForTests(handler http.Handler) (*httptest.Server, error) {
+	if handler == nil {
+		fileBytes, err := ioutil.ReadFile("testdata/local-index.yaml")
+		if err != nil {
+			return nil, err
+		}
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(fileBytes)
+		})
+	}
+
+	return httptest.NewTLSServer(handler), nil
+}
+
+func TestFindChartInAuthAndTLSRepoURL(t *testing.T) {
+	srv, err := startLocalTLSServerForTests(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srv.Close()
+
+	chartURL, err := FindChartInAuthAndTLSRepoURL(srv.URL, "", "", "nginx", "", "", "", "", true, getter.All(&cli.EnvSettings{}))
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if chartURL != "https://charts.helm.sh/stable/nginx-0.2.0.tgz" {
+		t.Errorf("%s is not the valid URL", chartURL)
+	}
+
+	// If the insecureSkipTLsverify is false, it will return an error that contains "x509: certificate signed by unknown authority".
+	_, err = FindChartInAuthAndTLSRepoURL(srv.URL, "", "", "nginx", "0.1.0", "", "", "", false, getter.All(&cli.EnvSettings{}))
+
+	if !strings.Contains(err.Error(), "x509: certificate signed by unknown authority") {
+		t.Errorf("Expected TLS error for function  FindChartInAuthAndTLSRepoURL not found, but got a different error (%v)", err)
+	}
+}
+
 func TestFindChartInRepoURL(t *testing.T) {
 	srv, err := startLocalServerForTests(nil)
 	if err != nil {
@@ -287,7 +325,7 @@ func TestFindChartInRepoURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	if chartURL != "https://kubernetes-charts.storage.googleapis.com/nginx-0.2.0.tgz" {
+	if chartURL != "https://charts.helm.sh/stable/nginx-0.2.0.tgz" {
 		t.Errorf("%s is not the valid URL", chartURL)
 	}
 
@@ -295,7 +333,7 @@ func TestFindChartInRepoURL(t *testing.T) {
 	if err != nil {
 		t.Errorf("%s", err)
 	}
-	if chartURL != "https://kubernetes-charts.storage.googleapis.com/nginx-0.1.0.tgz" {
+	if chartURL != "https://charts.helm.sh/stable/nginx-0.1.0.tgz" {
 		t.Errorf("%s is not the valid URL", chartURL)
 	}
 }
@@ -354,11 +392,11 @@ func TestResolveReferenceURL(t *testing.T) {
 		t.Errorf("%s", chartURL)
 	}
 
-	chartURL, err = ResolveReferenceURL("http://localhost:8123", "https://kubernetes-charts.storage.googleapis.com/nginx-0.2.0.tgz")
+	chartURL, err = ResolveReferenceURL("http://localhost:8123", "https://charts.helm.sh/stable/nginx-0.2.0.tgz")
 	if err != nil {
 		t.Errorf("%s", err)
 	}
-	if chartURL != "https://kubernetes-charts.storage.googleapis.com/nginx-0.2.0.tgz" {
+	if chartURL != "https://charts.helm.sh/stable/nginx-0.2.0.tgz" {
 		t.Errorf("%s", chartURL)
 	}
 }

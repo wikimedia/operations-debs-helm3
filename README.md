@@ -43,7 +43,7 @@ If you want to use a package manager:
 - [GoFish](https://gofi.sh/) users can use `gofish install helm`.
 - [Snapcraft](https://snapcraft.io/) users can use `snap install helm --classic`
 
-To rapidly get Helm up and running, start with the [Quick Start Guide](https://docs.helm.sh/using_helm/#quickstart-guide).
+To rapidly get Helm up and running, start with the [Quick Start Guide](https://helm.sh/docs/intro/quickstart/).
 
 See the [installation guide](https://helm.sh/docs/intro/install/) for more options,
 including installing pre-releases.
@@ -66,7 +66,7 @@ You can reach the Helm community and developers via the following channels:
   - [#charts](https://kubernetes.slack.com/messages/charts)
 - Mailing List:
   - [Helm Mailing List](https://lists.cncf.io/g/cncf-helm)
-- Developer Call: Thursdays at 9:30-10:00 Pacific. [https://zoom.us/j/696660622](https://zoom.us/j/696660622)
+- Developer Call: Thursdays at 9:30-10:00 Pacific ([meeting details](https://github.com/helm/community/blob/master/communication.md#meetings))
 
 ### Code of conduct
 

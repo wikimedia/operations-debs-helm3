@@ -80,6 +80,10 @@ func TestUpgradeCmd(t *testing.T) {
 	missingDepsPath := "testdata/testcharts/chart-missing-deps"
 	badDepsPath := "testdata/testcharts/chart-bad-requirements"
 
+	relWithStatusMock := func(n string, v int, ch *chart.Chart, status release.Status) *release.Release {
+		return release.Mock(&release.MockReleaseOptions{Name: n, Version: v, Chart: ch, Status: status})
+	}
+
 	relMock := func(n string, v int, ch *chart.Chart) *release.Release {
 		return release.Mock(&release.MockReleaseOptions{Name: n, Version: v, Chart: ch})
 	}
@@ -138,6 +142,25 @@ func TestUpgradeCmd(t *testing.T) {
 			cmd:       fmt.Sprintf("upgrade bonkers-bunny '%s'", badDepsPath),
 			golden:    "output/upgrade-with-bad-dependencies.txt",
 			wantError: true,
+		},
+		{
+			name:      "upgrade a non-existent release",
+			cmd:       fmt.Sprintf("upgrade funny-bunny '%s'", chartPath),
+			golden:    "output/upgrade-with-bad-or-missing-existing-release.txt",
+			wantError: true,
+		},
+		{
+			name:   "upgrade a failed release",
+			cmd:    fmt.Sprintf("upgrade funny-bunny '%s'", chartPath),
+			golden: "output/upgrade.txt",
+			rels:   []*release.Release{relWithStatusMock("funny-bunny", 2, ch, release.StatusFailed)},
+		},
+		{
+			name:      "upgrade a pending install release",
+			cmd:       fmt.Sprintf("upgrade funny-bunny '%s'", chartPath),
+			golden:    "output/upgrade-with-pending-install.txt",
+			wantError: true,
+			rels:      []*release.Release{relWithStatusMock("funny-bunny", 2, ch, release.StatusPendingInstall)},
 		},
 	}
 	runTestCmd(t, tests)
@@ -357,4 +380,36 @@ func prepareMockRelease(releaseName string, t *testing.T) (func(n string, v int,
 
 func TestUpgradeOutputCompletion(t *testing.T) {
 	outputFlagCompletionTest(t, "upgrade")
+}
+
+func TestUpgradeVersionCompletion(t *testing.T) {
+	repoFile := "testdata/helmhome/helm/repositories.yaml"
+	repoCache := "testdata/helmhome/helm/repository"
+
+	repoSetup := fmt.Sprintf("--repository-config %s --repository-cache %s", repoFile, repoCache)
+
+	tests := []cmdTestCase{{
+		name:   "completion for upgrade version flag",
+		cmd:    fmt.Sprintf("%s __complete upgrade releasename testing/alpine --version ''", repoSetup),
+		golden: "output/version-comp.txt",
+	}, {
+		name:   "completion for upgrade version flag too few args",
+		cmd:    fmt.Sprintf("%s __complete upgrade releasename --version ''", repoSetup),
+		golden: "output/version-invalid-comp.txt",
+	}, {
+		name:   "completion for upgrade version flag too many args",
+		cmd:    fmt.Sprintf("%s __complete upgrade releasename testing/alpine badarg --version ''", repoSetup),
+		golden: "output/version-invalid-comp.txt",
+	}, {
+		name:   "completion for upgrade version flag invalid chart",
+		cmd:    fmt.Sprintf("%s __complete upgrade releasename invalid/invalid --version ''", repoSetup),
+		golden: "output/version-invalid-comp.txt",
+	}}
+	runTestCmd(t, tests)
+}
+
+func TestUpgradeFileCompletion(t *testing.T) {
+	checkFileCompletion(t, "upgrade", false)
+	checkFileCompletion(t, "upgrade myrelease", true)
+	checkFileCompletion(t, "upgrade myrelease repo/chart", false)
 }
