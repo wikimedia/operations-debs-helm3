@@ -14,7 +14,7 @@ Package: helm3
 Provides: helm
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: A tool from managing Kubernetes charts
+Description: A tool for managing Kubernetes charts
  Helm is a tool for managing Kubernetes charts. Charts are packages of
  pre-configured Kubernetes resources.
  .
